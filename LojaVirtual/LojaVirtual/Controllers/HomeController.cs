@@ -8,16 +8,19 @@ using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using LojaVirtual.Database;
+using LojaVirtual.Repositories.Contracts;
 
 namespace LojaVirtual.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly LojaVirtualContext _context;
+        private readonly IClienteRepository _repositoryCliente;
+        private readonly INewsletterRepository _repositoryNewsletter;
 
-        public HomeController(LojaVirtualContext context)
+        public HomeController(IClienteRepository repository, INewsletterRepository repositoryNewsletter)
         {
-            _context = context;
+            _repositoryCliente = repository;
+            _repositoryNewsletter = repositoryNewsletter;
         }
 
         [HttpGet]
@@ -30,18 +33,14 @@ namespace LojaVirtual.Controllers
         {
             if (ModelState.IsValid)
             {
-                //TODO - Adição no banco de dados
-                _context.NewsletterEmails.Add(newsletter);
-                _context.SaveChanges();
+                _repositoryNewsletter.Cadastrar(newsletter);
 
                 TempData["MSG_S"] = "E-mail cadastrado! Agora você irá receber promoções especiais no seu e-mail! Fique atento as novidades!";
-
                 return RedirectToAction(nameof(Index));
             } else
             {
                 return View();
             }
-
         }
 
         public IActionResult Contato()
@@ -96,8 +95,24 @@ namespace LojaVirtual.Controllers
             return View();
         }
 
+        [HttpGet]
         public IActionResult CadastroCliente()
         {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult CadastroCliente([FromForm]Cliente cliente)
+        {
+            if (ModelState.IsValid)
+            {
+                _repositoryCliente.Cadastrar(cliente);
+
+                TempData["MSG_S"] = "Cadastro realizado com sucesso!";
+
+                //TODO - Implementar redirecionamentos diferentes(Painel, Carrinho de Compras etc).
+                return RedirectToAction(nameof(CadastroCliente));
+            }
             return View();
         }
 

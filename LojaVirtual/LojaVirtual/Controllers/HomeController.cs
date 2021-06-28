@@ -9,6 +9,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using LojaVirtual.Database;
 using LojaVirtual.Repositories.Contracts;
+using Microsoft.AspNetCore.Http;
+using LojaVirtual.Libraries.Login;
 
 namespace LojaVirtual.Controllers
 {
@@ -16,11 +18,13 @@ namespace LojaVirtual.Controllers
     {
         private readonly IClienteRepository _repositoryCliente;
         private readonly INewsletterRepository _repositoryNewsletter;
+        private readonly LoginCliente _loginCliente;
 
-        public HomeController(IClienteRepository repository, INewsletterRepository repositoryNewsletter)
+        public HomeController(IClienteRepository repository, INewsletterRepository repositoryNewsletter, LoginCliente loginCliente)
         {
             _repositoryCliente = repository;
             _repositoryNewsletter = repositoryNewsletter;
+            _loginCliente = loginCliente;
         }
 
         [HttpGet]
@@ -90,9 +94,39 @@ namespace LojaVirtual.Controllers
             return View("Contato");
         }
 
+        [HttpGet]
         public IActionResult Login()
         {
             return View();
+        }
+
+        [HttpPost]
+        public IActionResult Login([FromForm]Cliente cliente)
+        {
+            Cliente clienteDB = _repositoryCliente.Login(cliente.Email, cliente.Senha);
+            if (clienteDB != null)
+            {
+                _loginCliente.Login(clienteDB);
+
+                return new RedirectResult(Url.Action(nameof(Painel)));
+            } else
+            {
+                ViewData["MSG_E"] = "Usuário não encontrado, verifique usuário e senha digitado!";
+                return View();
+            }
+        }
+
+        [HttpGet]
+        public IActionResult Painel()
+        {
+            Cliente cliente = _loginCliente.GetCliente();
+            if (cliente != null)
+            {
+                return new ContentResult() { Content = "Usuario " +cliente.Id+ " - Email: "+cliente.Email+" - Idade: "+DateTime.Now.AddYears(-cliente.Nascimento.Year).ToString("yyyy") +" Logado!"};
+            }
+
+            return new ContentResult() { Content = "Acesso negado."};
+
         }
 
         [HttpGet]
